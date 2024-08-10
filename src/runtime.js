@@ -1,22 +1,44 @@
-// runtime.js
+const { core } = Deno;
+const { ops } = core;
 
-((globalThis) => {
-  const core = Deno.core;
+function argsToMessage(...args) {
+  return args.map((arg) => JSON.stringify(arg)).join(" ");
+}
 
-  function argsToMessage(...args) {
-    return args
-      .map((arg) =>
-        typeof arg === "object" ? JSON.stringify(arg) : String(arg),
-      )
-      .join(" ");
-  }
+const console = {
+  log: (...args) => {
+    core.print(`[out]: ${argsToMessage(...args)}\n`, false);
+  },
+  error: (...args) => {
+    core.print(`[err]: ${argsToMessage(...args)}\n`, true);
+  },
+};
 
-  globalThis.console = {
-    log: (...args) => {
-      core.print(`[out]: ${argsToMessage(...args)}\n`, false);
-    },
-    error: (...args) => {
-      core.print(`[err]: ${argsToMessage(...args)}\n`, true);
-    },
-  };
-})(globalThis);
+const runjs = {
+  readFile: (path) => {
+    return ops.op_read_file(path);
+  },
+  writeFile: (path, contents) => {
+    return ops.op_write_file(path, contents);
+  },
+  removeFile: (path) => {
+    return ops.op_remove_file(path);
+  },
+
+  fetch: async (url) => {
+    return ops.op_fetch(url);
+  },
+};
+
+globalThis.setTimeout = (callback, delay) => {
+  ops.op_set_timeout(delay).then(callback);
+};
+
+globalThis.setInterval = (cb, interval) => {
+  return os.op_set_interval(delay, cb);
+};
+globalThis.clearTimeout = (id) => ops.op_clear_timeout(id);
+globalThis.clearInterval = (id) => ops.op_clear_interval(id);
+
+globalThis.console = console;
+globalThis.runjs = runjs;
